@@ -1,0 +1,1021 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CONTEXTUAL CLICKER</title>
+  <style>
+    /* ══════════════════════════════════════════════
+       RESET & BASE
+    ══════════════════════════════════════════════ */
+    @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=VT323&family=Press+Start+2P&display=swap');
+
+    *,
+    *::before,
+    *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    :root {
+      --bg: #000000;
+      --fg: #ffffff;
+      --dim: #888888;
+      --blink: #ffffff;
+    }
+
+    html,
+    body {
+      width: 100%;
+      height: 100%;
+      background: #111;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: 'Share Tech Mono', monospace;
+      overflow: hidden;
+    }
+
+    /* ══════════════════════════════════════════════
+       16:9 VIEWPORT WRAPPER
+    ══════════════════════════════════════════════ */
+    #game-shell {
+      position: relative;
+      width: min(100vw, calc(100vh * 16 / 9));
+      height: min(100vh, calc(100vw * 9 / 16));
+      background: var(--bg);
+      border: 3px solid var(--fg);
+      overflow: hidden;
+      image-rendering: pixelated;
+    }
+
+    /* scanline overlay */
+    #game-shell::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: repeating-linear-gradient(to bottom,
+          transparent 0px,
+          transparent 3px,
+          rgba(255, 255, 255, 0.03) 3px,
+          rgba(255, 255, 255, 0.03) 4px);
+      pointer-events: none;
+      z-index: 9999;
+    }
+
+    /* ══════════════════════════════════════════════
+       SCREEN MANAGEMENT
+    ══════════════════════════════════════════════ */
+    .screen {
+      position: absolute;
+      inset: 0;
+      display: none;
+      flex-direction: column;
+      color: var(--fg);
+      padding: 2.5% 3%;
+      overflow: hidden;
+    }
+
+    .screen.active {
+      display: flex;
+    }
+
+    /* ══════════════════════════════════════════════
+       SHARED UI COMPONENTS
+    ══════════════════════════════════════════════ */
+    .pixel-btn {
+      font-family: 'Share Tech Mono', monospace;
+      font-size: clamp(0.6rem, 1vw, 0.9rem);
+      color: var(--fg);
+      background: var(--bg);
+      border: 2px solid var(--fg);
+      padding: 0.5em 1.2em;
+      cursor: pointer;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      transition: background 0.08s, color 0.08s;
+      image-rendering: pixelated;
+      outline: none;
+    }
+
+    .pixel-btn:hover {
+      background: var(--fg);
+      color: var(--bg);
+    }
+
+    .pixel-btn:active {
+      outline: 2px solid var(--fg);
+      outline-offset: 2px;
+    }
+
+    .pixel-input {
+      font-family: 'Share Tech Mono', monospace;
+      font-size: clamp(0.75rem, 1.5vw, 1rem);
+      color: var(--fg);
+      background: var(--bg);
+      border: 2px solid var(--fg);
+      padding: 0.5em 1em;
+      outline: none;
+      width: 100%;
+      letter-spacing: 0.05em;
+      caret-color: var(--fg);
+    }
+
+    .pixel-input::placeholder {
+      color: var(--dim);
+    }
+
+    .pixel-input:focus {
+      border-color: var(--fg);
+      box-shadow: 0 0 0 2px #fff3;
+    }
+
+    .box {
+      border: 2px solid var(--fg);
+      padding: 3%;
+    }
+
+    .tag {
+      display: inline-block;
+      font-size: clamp(0.5rem, 0.9vw, 0.72rem);
+      border: 1px solid var(--fg);
+      padding: 0.15em 0.5em;
+      letter-spacing: 0.08em;
+      background: var(--fg);
+      color: var(--bg);
+      white-space: nowrap;
+    }
+
+    .section-title {
+      font-family: 'VT323', monospace;
+      font-size: clamp(0.8rem, 1.5vw, 1.2rem);
+      letter-spacing: 0.12em;
+      border-bottom: 2px solid var(--fg);
+      padding-bottom: 0.3em;
+      margin-bottom: 0.6em;
+    }
+
+    /* ── blinking cursor ── */
+    .blink {
+      animation: blink-anim 1s step-end infinite;
+    }
+
+    @keyframes blink-anim {
+
+      0%,
+      100% {
+        opacity: 1;
+      }
+
+      50% {
+        opacity: 0;
+      }
+    }
+
+    /* ══════════════════════════════════════════════
+       SCREEN 1 — MAIN MENU
+    ══════════════════════════════════════════════ */
+    #screen-menu {
+      align-items: center;
+      justify-content: center;
+      gap: 2.5%;
+    }
+
+    .ascii-art {
+      font-family: 'VT323', monospace;
+      font-size: clamp(0.4rem, 0.8vw, 1.2rem);
+      line-height: 1.15;
+      white-space: pre;
+      text-align: center;
+      letter-spacing: 0.03em;
+      text-shadow:
+        0 0 6px #fff,
+        0 0 16px #fff8;
+      animation: flicker 6s infinite;
+      user-select: none;
+      overflow: hidden;
+    }
+
+    @keyframes flicker {
+
+      0%,
+      94%,
+      100% {
+        opacity: 1;
+      }
+
+      95% {
+        opacity: 0.85;
+      }
+
+      96% {
+        opacity: 1;
+      }
+
+      97% {
+        opacity: 0.5;
+      }
+
+      98% {
+        opacity: 1;
+      }
+    }
+
+    .menu-subtitle {
+      font-size: clamp(0.7rem, 1.5vw, 1.05rem);
+      color: var(--dim);
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      text-align: center;
+    }
+
+    .menu-divider {
+      width: 60%;
+      height: 1px;
+      background: var(--fg);
+      opacity: 0.4;
+    }
+
+    .menu-form {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 1.2em;
+      width: 55%;
+    }
+
+    #btn-start {
+      font-size: clamp(0.8rem, 1.8vw, 1.2rem);
+      padding: 0.6em 2.5em;
+      font-family: 'VT323', monospace;
+      letter-spacing: 0.2em;
+    }
+
+    .menu-footer {
+      position: absolute;
+      bottom: 1.5%;
+      left: 0;
+      right: 0;
+      text-align: center;
+      font-size: clamp(0.45rem, 0.9vw, 0.7rem);
+      color: var(--dim);
+      letter-spacing: 0.15em;
+    }
+
+    /* corner decorations */
+    .corner {
+      position: absolute;
+      width: clamp(18px, 3vw, 30px);
+      height: clamp(18px, 3vw, 30px);
+      border-color: var(--fg);
+      border-style: solid;
+      opacity: 0.5;
+    }
+
+    .corner-tl {
+      top: 6px;
+      left: 6px;
+      border-width: 2px 0 0 2px;
+    }
+
+    .corner-tr {
+      top: 6px;
+      right: 6px;
+      border-width: 2px 2px 0 0;
+    }
+
+    .corner-bl {
+      bottom: 6px;
+      left: 6px;
+      border-width: 0 0 2px 2px;
+    }
+
+    .corner-br {
+      bottom: 6px;
+      right: 6px;
+      border-width: 0 2px 2px 0;
+    }
+
+    /* ══════════════════════════════════════════════
+       SCREEN 2 — GAMEPLAY HUD
+    ══════════════════════════════════════════════ */
+    #screen-game {
+      gap: 0;
+    }
+
+    .hud-topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 2px solid var(--fg);
+      padding-bottom: 1%;
+      margin-bottom: 1.5%;
+      flex-shrink: 0;
+    }
+
+    .hud-title {
+      font-family: 'VT323', monospace;
+      font-size: clamp(0.9rem, 2.2vw, 1.6rem);
+      letter-spacing: 0.15em;
+    }
+
+    .hud-theme-badge {
+      font-size: clamp(0.5rem, 1vw, 0.8rem);
+      color: var(--dim);
+      letter-spacing: 0.1em;
+    }
+
+    .hud-body {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 2%;
+      flex: 1;
+      min-height: 0;
+    }
+
+    /* ── left column: planet ── */
+    .col-action {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 5%;
+    }
+
+    .planet-ring {
+      position: relative;
+      width: clamp(80px, 20vw, 200px);
+      height: clamp(80px, 20vw, 200px);
+      flex-shrink: 0;
+    }
+
+    .planet {
+      width: 100%;
+      height: 100%;
+      border-radius: 50%;
+      background: var(--bg);
+      border: 3px solid var(--fg);
+      box-shadow:
+        0 0 0 6px #fff2,
+        0 0 30px #fff3,
+        inset 0 0 30px #fff1;
+      cursor: pointer;
+      transition: transform 0.08s, box-shadow 0.15s;
+      position: relative;
+      overflow: hidden;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .planet:hover {
+      box-shadow: 0 0 0 6px #fff4, 0 0 50px #fff4, inset 0 0 30px #fff2;
+    }
+
+    .planet:active {
+      transform: scale(0.97);
+    }
+
+    /* pixel cracks inside the planet */
+    .planet-texture {
+      position: absolute;
+      inset: 0;
+      opacity: 0.15;
+      background-image:
+        radial-gradient(circle at 30% 40%, #fff 1px, transparent 1px),
+        radial-gradient(circle at 65% 25%, #fff 1px, transparent 1px),
+        radial-gradient(circle at 50% 70%, #fff 2px, transparent 2px),
+        radial-gradient(circle at 20% 75%, #fff 1px, transparent 1px),
+        radial-gradient(circle at 80% 60%, #fff 1px, transparent 1px),
+        radial-gradient(circle at 45% 15%, #fff 1px, transparent 1px);
+    }
+
+    .ascii-art .title-line1 {
+      font-family: 'Press Start 2P', monospace;
+      font-size: clamp(1rem, 3.2vw, 2.8rem);
+      display: block;
+      letter-spacing: 0.05em;
+      text-shadow: 0 0 8px #fff, 0 0 22px #fff9;
+      margin-bottom: 0.4em;
+    }
+
+    .ascii-art .title-line2 {
+      font-family: 'Press Start 2P', monospace;
+      font-size: clamp(1rem, 3.2vw, 2.8rem);
+      display: block;
+      letter-spacing: 0.05em;
+      text-shadow: 0 0 8px #fff, 0 0 22px #fff9;
+    }
+
+    .planet-label {
+      font-family: 'VT323', monospace;
+      font-size: clamp(0.9rem, 2vw, 1.5rem);
+      letter-spacing: 0.1em;
+      color: var(--dim);
+      pointer-events: none;
+    }
+
+    .mine-counter {
+      font-family: 'VT323', monospace;
+      font-size: clamp(0.9rem, 2.2vw, 1.6rem);
+      letter-spacing: 0.15em;
+      text-align: center;
+    }
+
+    .mine-count-num {
+      font-size: clamp(1.2rem, 3vw, 2.5rem);
+      display: block;
+      line-height: 1;
+    }
+
+    /* click animation */
+    .click-burst {
+      position: absolute;
+      border: 2px solid #fff;
+      border-radius: 50%;
+      width: 20px;
+      height: 20px;
+      pointer-events: none;
+      animation: burst 0.4s ease-out forwards;
+      z-index: 10;
+    }
+
+    @keyframes burst {
+      from {
+        transform: scale(1);
+        opacity: 1;
+      }
+
+      to {
+        transform: scale(4);
+        opacity: 0;
+      }
+    }
+
+    /* ── right column: AI info ── */
+    .col-info {
+      display: flex;
+      flex-direction: column;
+      gap: 4%;
+      overflow: hidden;
+    }
+
+    .info-box {
+      flex: 1;
+      border: 2px solid var(--fg);
+      display: grid;
+      grid-template-columns: auto 1fr;
+      grid-template-rows: auto 1fr;
+      gap: 0;
+      min-height: 0;
+      overflow: hidden;
+    }
+
+    .info-img-placeholder {
+      grid-row: 1 / 3;
+      border-right: 2px solid var(--fg);
+      width: clamp(55px, 9vw, 90px);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
+      padding: 4px;
+      flex-shrink: 0;
+      background:
+        linear-gradient(45deg, #fff1 25%, transparent 25%),
+        linear-gradient(-45deg, #fff1 25%, transparent 25%),
+        linear-gradient(45deg, transparent 75%, #fff1 75%),
+        linear-gradient(-45deg, transparent 75%, #fff1 75%);
+      background-size: 8px 8px;
+      background-position: 0 0, 0 4px, 4px -4px, -4px 0px;
+    }
+
+    .img-caption {
+      font-size: clamp(0.38rem, 0.7vw, 0.58rem);
+      color: var(--dim);
+      letter-spacing: 0.05em;
+      text-align: center;
+      line-height: 1.3;
+      padding: 2px;
+    }
+
+    .info-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid var(--fg);
+      padding: 2% 3%;
+      gap: 4px;
+      flex-wrap: wrap;
+    }
+
+    .info-item-name {
+      font-family: 'VT323', monospace;
+      font-size: clamp(0.75rem, 1.6vw, 1.2rem);
+      letter-spacing: 0.08em;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .info-desc {
+      font-size: clamp(0.35rem, 0.75vw, 0.6rem);
+      color: var(--dim);
+      line-height: 1.5;
+      padding: 2%;
+      overflow: hidden;
+    }
+
+    /* ══════════════════════════════════════════════
+       SCREEN 3 — MUSEUM
+    ══════════════════════════════════════════════ */
+    #screen-museum {
+      gap: 0;
+    }
+
+    .museum-topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 2px solid var(--fg);
+      padding-bottom: 1%;
+      margin-bottom: 1.5%;
+      flex-shrink: 0;
+    }
+
+    .museum-title {
+      font-family: 'VT323', monospace;
+      font-size: clamp(0.9rem, 2.4vw, 1.8rem);
+      letter-spacing: 0.12em;
+    }
+
+    .procedural-note {
+      font-size: clamp(0.4rem, 0.8vw, 0.65rem);
+      color: var(--dim);
+      border: 1px solid var(--dim);
+      padding: 0.2em 0.6em;
+      letter-spacing: 0.08em;
+    }
+
+    .museum-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 2%;
+      flex: 1;
+      min-height: 0;
+    }
+
+    .artifact-card {
+      border: 2px solid var(--fg);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      transition: box-shadow 0.15s;
+      cursor: default;
+    }
+
+    .artifact-card:hover {
+      box-shadow: 0 0 0 2px var(--fg), 0 0 16px #fff3;
+    }
+
+    .artifact-img {
+      flex: 1;
+      border-bottom: 2px solid var(--fg);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: clamp(0.4rem, 0.8vw, 0.65rem);
+      color: var(--dim);
+      letter-spacing: 0.05em;
+      background:
+        linear-gradient(45deg, #fff0 25%, transparent 25%),
+        linear-gradient(-45deg, #fff0 25%, transparent 25%),
+        linear-gradient(45deg, transparent 75%, #fff0 75%),
+        linear-gradient(-45deg, transparent 75%, #fff0 75%),
+        repeating-linear-gradient(0deg,
+          transparent,
+          transparent 8px,
+          #ffffff08 8px,
+          #ffffff08 9px),
+        repeating-linear-gradient(90deg,
+          transparent,
+          transparent 8px,
+          #ffffff08 8px,
+          #ffffff08 9px);
+      min-height: 0;
+      position: relative;
+      overflow: hidden;
+    }
+
+    /* pixel grid dot */
+    .artifact-img::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background-image: radial-gradient(circle, #fff2 1px, transparent 1px);
+      background-size: 10px 10px;
+    }
+
+    .artifact-img-label {
+      position: relative;
+      z-index: 1;
+      text-align: center;
+      padding: 4px;
+    }
+
+    .artifact-body {
+      padding: 2%;
+      flex-shrink: 0;
+    }
+
+    .artifact-name {
+      font-family: 'VT323', monospace;
+      font-size: clamp(0.7rem, 1.5vw, 1.1rem);
+      letter-spacing: 0.08em;
+      margin-bottom: 0.4em;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .artifact-desc {
+      font-size: clamp(0.35rem, 0.75vw, 0.6rem);
+      color: var(--dim);
+      line-height: 1.5;
+      overflow: hidden;
+    }
+
+    /* ══════════════════════════════════════════════
+       MISC UTILITIES
+    ══════════════════════════════════════════════ */
+    .mt-auto {
+      margin-top: auto;
+    }
+
+    .text-dim {
+      color: var(--dim);
+    }
+
+    /* pixel noise border animation on focus */
+    .pixel-btn:focus-visible {
+      outline: 2px dashed var(--fg);
+      outline-offset: 3px;
+    }
+
+    /* rarity indicator bar */
+    .rarity-bar {
+      display: flex;
+      gap: 2px;
+      margin-top: 4px;
+    }
+
+    .rarity-pip {
+      width: 6px;
+      height: 6px;
+      border: 1px solid var(--fg);
+    }
+
+    .rarity-pip.filled {
+      background: var(--fg);
+    }
+  </style>
+</head>
+
+<body>
+
+  <div id="game-shell">
+
+    <!-- ═══════════════════════════════════════════
+       CORNER DECORATIONS (shared)
+  ═══════════════════════════════════════════ -->
+    <div class="corner corner-tl"></div>
+    <div class="corner corner-tr"></div>
+    <div class="corner corner-bl"></div>
+    <div class="corner corner-br"></div>
+
+    <!-- ═══════════════════════════════════════════
+       SCREEN 1 — MAIN MENU
+  ═══════════════════════════════════════════ -->
+    <div id="screen-menu" class="screen active">
+
+      <div class="ascii-art">
+        <span class="title-line1">CONTEXTUAL CLICKER</span>
+      </div>
+
+      <div class="menu-form">
+        <input id="theme-input" class="pixel-input" type="text" placeholder="Digite o tema do universo (ex: Cozinha)"
+          maxlength="40" autocomplete="off" />
+        <button id="btn-start" class="pixel-btn" onclick="goTo('game')">
+          [ INICIAR ESCAVAÇÃO ]
+        </button>
+      </div>
+
+      <div class="menu-footer">
+        &gt; VER 0.1.0-ALPHA &nbsp;|&nbsp; CONTEXTUAL CLICKER ENGINE &nbsp;|&nbsp;
+        POWERED BY LLAMA 3.2 &nbsp;|&nbsp;
+      </div>
+
+    </div><!-- /screen-menu -->
+
+
+    <!-- ═══════════════════════════════════════════
+       SCREEN 2 — GAMEPLAY HUD
+  ═══════════════════════════════════════════ -->
+    <div id="screen-game" class="screen">
+
+      <!-- top bar -->
+      <div class="hud-topbar">
+        <span class="hud-title">// MINA ATIVA //</span>
+        <span class="hud-theme-badge">TEMA: <strong id="hud-theme">COZINHA</strong></span>
+        <button class="pixel-btn" onclick="goTo('menu')" style="font-size:clamp(0.55rem,1vw,0.8rem);">
+          [ PAUSAR / VOLTAR AO MENU ]
+        </button>
+      </div>
+
+      <!-- two-column body -->
+      <div class="hud-body">
+
+        <!-- ── LEFT: planet ── -->
+        <div class="col-action">
+
+          <div class="planet-ring">
+            <div class="planet" id="planet-btn" onclick="mine(event)" title="Clique para minerar!">
+              <div class="planet-texture"></div>
+              <span class="planet-label" id="planet-label"> CLIQUE PARA MINERAR</span>
+            </div>
+          </div>
+
+          <div class="mine-counter">
+            PEDRAS MINERADAS
+            <span class="mine-count-num" id="mine-count">0</span>
+            <small class="text-dim" style="font-size:clamp(0.45rem,0.85vw,0.68rem);letter-spacing:0.12em;">
+              FRAGMENTOS DE UNIVERSO COLETADOS
+            </small>
+          </div>
+
+        </div><!-- /col-action -->
+
+        <!-- ── RIGHT: AI info ── -->
+        <div class="col-info">
+
+          <!-- Box 1: Picareta -->
+          <div class="section-title">&gt; PICARETA ATUAL</div>
+          <div class="info-box">
+            <div class="info-img-placeholder">
+              <!-- PLACEHOLDER: substituir por <img> depois -->
+              <svg width="36" height="36" viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg"
+                style="opacity:0.4">
+                <rect x="1" y="1" width="34" height="34" stroke="white" stroke-width="2" />
+                <line x1="1" y1="1" x2="35" y2="35" stroke="white" stroke-width="1" />
+                <line x1="35" y1="1" x2="1" y2="35" stroke="white" stroke-width="1" />
+              </svg>
+              <span class="img-caption">Imagem IA:<br />Bing</span>
+            </div>
+            <div class="info-header">
+              <span class="info-item-name">Picareta de Pão Francês</span>
+              <span class="tag">LORE GERADA POR LLAMA 3.2</span>
+            </div>
+            <div class="info-desc">
+              Forjada nas profundezas de uma padaria esquecida, esta picareta
+              exsuda farinha ao impactar. Seu miolo macio absorve tremores
+              sísmicos, enquanto a casca crocante perfura qualquer mineral com
+              precisão padeira. +12 DMG em terrenos com glúten.
+              <div class="rarity-bar">
+                <div class="rarity-pip filled"></div>
+                <div class="rarity-pip filled"></div>
+                <div class="rarity-pip filled"></div>
+                <div class="rarity-pip"></div>
+                <div class="rarity-pip"></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Box 2: Buff -->
+          <div class="section-title">&gt; BUFF ATIVO</div>
+          <div class="info-box">
+            <div class="info-img-placeholder">
+              <!-- PLACEHOLDER: substituir por <img> depois -->
+              <svg width="36" height="36" viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg"
+                style="opacity:0.4">
+                <rect x="1" y="1" width="34" height="34" stroke="white" stroke-width="2" />
+                <line x1="1" y1="1" x2="35" y2="35" stroke="white" stroke-width="1" />
+                <line x1="35" y1="1" x2="1" y2="35" stroke="white" stroke-width="1" />
+              </svg>
+              <span class="img-caption">Imagem IA:<br />Bing</span>
+            </div>
+            <div class="info-header">
+              <span class="info-item-name">Cupcake Açucarado</span>
+              <span class="tag">LORE GERADA POR LLAMA 3.2</span>
+            </div>
+            <div class="info-desc">
+              Um cupcake radiante encontrado no núcleo de cristal de baunilha.
+              Ao ser consumido, libera ondas de açúcar que aceleram o tempo
+              de escavação em 2x por 30 segundos. Efeitos colaterais incluem
+              visão turva de confete e soluços rítmicos.
+              <div class="rarity-bar">
+                <div class="rarity-pip filled"></div>
+                <div class="rarity-pip filled"></div>
+                <div class="rarity-pip filled"></div>
+                <div class="rarity-pip filled"></div>
+                <div class="rarity-pip"></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- museum shortcut -->
+          <button class="pixel-btn mt-auto" onclick="goTo('museum')"
+            style="align-self:flex-start;font-size:clamp(0.5rem,0.9vw,0.72rem);">
+            [ VER MUSEU / COLEÇÃO ]
+          </button>
+
+        </div><!-- /col-info -->
+      </div><!-- /hud-body -->
+
+    </div><!-- /screen-game -->
+
+
+    <!-- ═══════════════════════════════════════════
+       SCREEN 3 — MUSEUM
+  ═══════════════════════════════════════════ -->
+    <div id="screen-museum" class="screen">
+
+      <div class="museum-topbar">
+        <span class="museum-title">ARTEFATOS DO UNIVERSO: <span id="museum-theme">COZINHA</span></span>
+        <span class="procedural-note">NOTA: Todos os assets e textos desta galeria são procedurais</span>
+        <button class="pixel-btn" onclick="goTo('game')" style="font-size:clamp(0.5rem,1vw,0.78rem);">
+          [ VOLTAR PARA A MINA ]
+        </button>
+      </div>
+
+      <div class="museum-grid">
+
+        <!-- Card 1 -->
+        <div class="artifact-card">
+          <div class="artifact-img">
+            <!-- PLACEHOLDER -->
+            <div class="artifact-img-label">[ IMG PROCEDURAL ]</div>
+          </div>
+          <div class="artifact-body">
+            <div class="artifact-name">Espátula Fóssil</div>
+            <div class="artifact-desc">
+              Relíquia de uma civilização que fritava ovos em temperatura
+              absoluta. Emite um aroma persistente de manteiga.
+            </div>
+            <div class="rarity-bar" style="margin-top:6px;">
+              <div class="rarity-pip filled"></div>
+              <div class="rarity-pip filled"></div>
+              <div class="rarity-pip"></div>
+              <div class="rarity-pip"></div>
+              <div class="rarity-pip"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Card 2 -->
+        <div class="artifact-card">
+          <div class="artifact-img">
+            <div class="artifact-img-label">[ IMG PROCEDURAL ]</div>
+          </div>
+          <div class="artifact-body">
+            <div class="artifact-name">Cristal de Sal Marinho</div>
+            <div class="artifact-desc">
+              Formação geológica originada de mares de sopa primordial.
+              Salga automaticamente tudo no raio de 5m.
+            </div>
+            <div class="rarity-bar" style="margin-top:6px;">
+              <div class="rarity-pip filled"></div>
+              <div class="rarity-pip filled"></div>
+              <div class="rarity-pip filled"></div>
+              <div class="rarity-pip filled"></div>
+              <div class="rarity-pip"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Card 3 -->
+        <div class="artifact-card">
+          <div class="artifact-img">
+            <div class="artifact-img-label">[ IMG PROCEDURAL ]</div>
+          </div>
+          <div class="artifact-body">
+            <div class="artifact-name">Ovo Petrificado</div>
+            <div class="artifact-desc">
+              Ninguém sabe se veio antes da galinha. Os geólogos discutem.
+              Emite uma frequência de 440Hz quando aquecido.
+            </div>
+            <div class="rarity-bar" style="margin-top:6px;">
+              <div class="rarity-pip filled"></div>
+              <div class="rarity-pip"></div>
+              <div class="rarity-pip"></div>
+              <div class="rarity-pip"></div>
+              <div class="rarity-pip"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Card 4 -->
+        <div class="artifact-card">
+          <div class="artifact-img">
+            <div class="artifact-img-label">[ IMG PROCEDURAL ]</div>
+          </div>
+          <div class="artifact-body">
+            <div class="artifact-name">Panela do Vazio</div>
+            <div class="artifact-desc">
+              Artefato cosmológico. Qualquer ingrediente inserido transforma-se
+              em uma receita que ninguém pediu. +999 sabor.
+            </div>
+            <div class="rarity-bar" style="margin-top:6px;">
+              <div class="rarity-pip filled"></div>
+              <div class="rarity-pip filled"></div>
+              <div class="rarity-pip filled"></div>
+              <div class="rarity-pip filled"></div>
+              <div class="rarity-pip filled"></div>
+            </div>
+          </div>
+        </div>
+
+      </div><!-- /museum-grid -->
+
+    </div><!-- /screen-museum -->
+
+  </div><!-- /game-shell -->
+
+
+  <script>
+    /* ═══════════════════════════════════════
+       NAVIGATION
+    ═══════════════════════════════════════ */
+    const screens = {
+      menu: document.getElementById('screen-menu'),
+      game: document.getElementById('screen-game'),
+      museum: document.getElementById('screen-museum'),
+    };
+
+    function goTo(id) {
+      // sync theme across screens when leaving menu
+      if (id === 'game') {
+        const raw = document.getElementById('theme-input').value.trim();
+        const theme = raw !== '' ? raw.toUpperCase() : 'COZINHA';
+        document.getElementById('hud-theme').textContent = theme;
+        document.getElementById('museum-theme').textContent = theme;
+      }
+
+      Object.values(screens).forEach(s => s.classList.remove('active'));
+      screens[id].classList.add('active');
+    }
+
+    /* ═══════════════════════════════════════
+       MINING INTERACTION
+    ═══════════════════════════════════════ */
+    let mineCount = 0;
+
+    function mine(e) {
+      mineCount++;
+      document.getElementById('mine-count').textContent = mineCount;
+
+      // hide placeholder text after first click
+      const lbl = document.getElementById('planet-label');
+      if (mineCount === 1) lbl.style.opacity = '0';
+
+      // burst effect
+      const planet = document.getElementById('planet-btn');
+      const rect = planet.getBoundingClientRect();
+      const burst = document.createElement('div');
+      burst.classList.add('click-burst');
+      burst.style.left = (e.clientX - rect.left - 10) + 'px';
+      burst.style.top = (e.clientY - rect.top - 10) + 'px';
+      planet.appendChild(burst);
+      burst.addEventListener('animationend', () => burst.remove());
+
+      // subtle shake
+      planet.style.transform = 'scale(0.96) rotate(' + (Math.random() * 4 - 2) + 'deg)';
+      setTimeout(() => { planet.style.transform = ''; }, 120);
+    }
+
+    /* ═══════════════════════════════════════
+       KEYBOARD SHORTCUT
+    ═══════════════════════════════════════ */
+    document.addEventListener('keydown', e => {
+      const active = Object.entries(screens).find(([, s]) => s.classList.contains('active'));
+      if (!active) return;
+      const [id] = active;
+
+      if (e.key === 'Enter' && id === 'menu') goTo('game');
+      if (e.key === 'Escape' && id === 'game') goTo('menu');
+      if (e.key === 'Escape' && id === 'museum') goTo('game');
+      if (e.key === ' ' && id === 'game') {
+        // spacebar mines
+        const planet = document.getElementById('planet-btn');
+        mine({
+          clientX: planet.getBoundingClientRect().left + planet.offsetWidth / 2,
+          clientY: planet.getBoundingClientRect().top + planet.offsetHeight / 2
+        });
+      }
+    });
+  </script>
+</body>
+
+</html>

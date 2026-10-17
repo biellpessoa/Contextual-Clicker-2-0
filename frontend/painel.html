@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Contextual Clicker — Painel de Testes da API (FastAPI)</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=VT323&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: #0d0f12;
+      color: #e2e8f0;
+      font-family: 'Share Tech Mono', monospace;
+      padding: 24px;
+      line-height: 1.5;
+    }
+    .container { max-width: 1040px; margin: 0 auto; }
+    header {
+      border-bottom: 2px solid #334155;
+      padding-bottom: 16px;
+      margin-bottom: 24px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+    h1 {
+      font-family: 'VT323', monospace;
+      font-size: 2.2rem;
+      letter-spacing: 0.1em;
+      color: #38bdf8;
+    }
+    .badge {
+      display: inline-block;
+      padding: 4px 10px;
+      font-size: 0.8rem;
+      border: 1px solid #475569;
+      background: #1e293b;
+      border-radius: 4px;
+    }
+    .badge.ok { border-color: #22c55e; color: #4ade80; }
+    .badge.warn { border-color: #eab308; color: #fde047; }
+    .badge.err { border-color: #ef4444; color: #f87171; }
+    .nav-links a {
+      color: #38bdf8;
+      text-decoration: none;
+      margin-left: 14px;
+      font-size: 0.9rem;
+      border-bottom: 1px dashed #38bdf8;
+    }
+    .nav-links a:hover { color: #bae6fd; }
+    .grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+    }
+    @media (max-width: 768px) { .grid { grid-template-columns: 1fr; } }
+    .card {
+      background: #13171f;
+      border: 1px solid #334155;
+      border-radius: 6px;
+      padding: 18px;
+    }
+    .card-title {
+      font-family: 'VT323', monospace;
+      font-size: 1.4rem;
+      color: #94a3b8;
+      margin-bottom: 14px;
+      border-bottom: 1px solid #1e293b;
+      padding-bottom: 6px;
+    }
+    label {
+      display: block;
+      font-size: 0.85rem;
+      color: #94a3b8;
+      margin-top: 10px;
+      margin-bottom: 4px;
+    }
+    input, select, textarea {
+      width: 100%;
+      background: #090d13;
+      border: 1px solid #334155;
+      color: #f1f5f9;
+      padding: 8px 12px;
+      font-family: inherit;
+      font-size: 0.95rem;
+      border-radius: 4px;
+      outline: none;
+    }
+    input:focus, select:focus { border-color: #38bdf8; }
+    .btn {
+      background: #0284c7;
+      color: #fff;
+      border: none;
+      padding: 10px 18px;
+      font-family: inherit;
+      font-size: 0.95rem;
+      cursor: pointer;
+      border-radius: 4px;
+      margin-top: 16px;
+      transition: background 0.15s;
+      width: 100%;
+    }
+    .btn:hover { background: #0369a1; }
+    .btn:disabled { background: #334155; cursor: not-allowed; }
+    .btn-secondary { background: #1e293b; border: 1px solid #475569; margin-top: 8px; }
+    .btn-secondary:hover { background: #334155; }
+    pre {
+      background: #090d13;
+      border: 1px solid #1e293b;
+      padding: 12px;
+      border-radius: 4px;
+      font-size: 0.85rem;
+      overflow-x: auto;
+      max-height: 480px;
+      white-space: pre-wrap;
+      word-break: break-all;
+    }
+    .status-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 8px;
+      font-size: 0.9rem;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <div>
+        <h1>// PAINEL DE TESTES DA API //</h1>
+        <p style="color: #94a3b8; font-size: 0.85rem;">Front-end &amp; NLP — Validação de Rotas, Providers e Autenticação</p>
+      </div>
+      <div class="nav-links">
+        <a href="/docs" target="_blank">[ Swagger /docs ]</a>
+        <a href="/jogo/" target="_blank">[ Abrir Jogo ]</a>
+      </div>
+    </header>
+
+    <div class="grid">
+      <!-- Coluna 1: Parâmetros e Envio -->
+      <div class="card">
+        <div class="card-title">&gt; CONFIGURAÇÃO DA REQUISIÇÃO</div>
+
+        <label for="endpoint">Endpoint da API</label>
+        <input id="endpoint" type="text" value="/v1/ia-generativa/texto" readonly>
+
+        <label for="api-key">Header X-API-Key</label>
+        <input id="api-key" type="text" value="cc-dev-key-troque-me" placeholder="Chave da API">
+        <small style="color: #64748b; font-size: 0.75rem;">Altere para simular erro 401 Unauthorized.</small>
+
+        <label for="tipo">Tipo de Geração (tipo)</label>
+        <select id="tipo">
+          <option value="universo">universo (Picareta inicial + Buff)</option>
+          <option value="picareta">picareta (Upgrade de picareta com nível)</option>
+          <option value="buff">buff (Consumível multiplicador temporário)</option>
+          <option value="artefato">artefato (Item de museu com raridade)</option>
+          <option value="epilogo">epilogo (Final de sessão do jogo)</option>
+        </select>
+
+        <label for="tema">Tema do Universo (tema)</label>
+        <input id="tema" type="text" value="Cozinha" placeholder="Ex: Cozinha, Espaço, Piratas...">
+
+        <div id="extra-params" style="margin-top: 10px;">
+          <!-- Parâmetros contextuais dinâmicos -->
+          <label for="param-nivel">Nível da Picareta / Raridade</label>
+          <input id="param-nivel" type="number" min="1" max="7" value="2">
+        </div>
+
+        <button id="btn-enviar" class="btn" onclick="enviarRequisicao()">[ ENVIAR REQUISIÇÃO (POST) ]</button>
+        <button class="btn btn-secondary" onclick="testarStatus()">[ TESTAR STATUS DA IA (GET) ]</button>
+      </div>
+
+      <!-- Coluna 2: Retorno e Evidências -->
+      <div class="card">
+        <div class="card-title">&gt; RESPOSTA DA API &amp; TELEMETRIA</div>
+        
+        <div class="status-row">
+          <span>Status HTTP: <strong id="res-status">-</strong></span>
+          <span id="badge-fonte" class="badge">Aguardando</span>
+        </div>
+        <div class="status-row">
+          <span>Tempo / Latência: <strong id="res-tempo">-</strong></span>
+          <span>Modelo: <strong id="res-modelo">-</strong></span>
+        </div>
+
+        <label>Corpo da Resposta (JSON):</label>
+        <pre id="res-body">{ "info": "Clique em ENVIAR REQUISIÇÃO para testar a rota." }</pre>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const elTipo = document.getElementById('tipo');
+    const elTema = document.getElementById('tema');
+    const elKey = document.getElementById('api-key');
+    const elNivel = document.getElementById('param-nivel');
+    const btnEnviar = document.getElementById('btn-enviar');
+
+    const resStatus = document.getElementById('res-status');
+    const resTempo = document.getElementById('res-tempo');
+    const resModelo = document.getElementById('res-modelo');
+    const badgeFonte = document.getElementById('badge-fonte');
+    const resBody = document.getElementById('res-body');
+
+    async function enviarRequisicao() {
+      const tipo = elTipo.value;
+      const tema = elTema.value.trim() || 'Cozinha';
+      const key = elKey.value.trim();
+      const num = parseInt(elNivel.value, 10) || 1;
+
+      btnEnviar.disabled = true;
+      btnEnviar.textContent = '[ PROCESSANDO VIA FASTAPI & LLAMA... ]';
+      resStatus.textContent = 'Enviando...';
+      badgeFonte.className = 'badge warn';
+      badgeFonte.textContent = 'Aguardando';
+
+      const contexto = {};
+      if (tipo === 'picareta') {
+        contexto.nivel = num;
+        contexto.poder_clique = num * 2;
+      } else if (tipo === 'buff') {
+        contexto.multiplicador = 2;
+        contexto.duracao = 30;
+      } else if (tipo === 'artefato') {
+        contexto.raridade = Math.min(5, Math.max(1, num));
+        contexto.numero = num;
+      } else if (tipo === 'epilogo') {
+        contexto.estatisticas = { tempo: "03:45", pedras: 3500, cliques: 120 };
+      }
+
+      const inicio = performance.now();
+      try {
+        const resp = await fetch('/v1/ia-generativa/texto', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-API-Key': key
+          },
+          body: JSON.stringify({ tipo, tema, contexto })
+        });
+
+        const latenciaMs = Math.round(performance.now() - inicio);
+        resStatus.textContent = `${resp.status} ${resp.statusText}`;
+        resTempo.textContent = `${latenciaMs} ms`;
+
+        const dados = await resp.json();
+        resBody.textContent = JSON.stringify(dados, null, 2);
+
+        if (resp.ok) {
+          resModelo.textContent = dados.modelo;
+          if (dados.fonte === 'llama3.2') {
+            badgeFonte.className = 'badge ok';
+            badgeFonte.textContent = '● Llama 3.2 (IA Real)';
+          } else {
+            badgeFonte.className = 'badge warn';
+            badgeFonte.textContent = '○ Fallback Gracioso';
+          }
+        } else {
+          badgeFonte.className = 'badge err';
+          badgeFonte.textContent = 'Erro HTTP';
+          resModelo.textContent = '-';
+        }
+      } catch (err) {
+        resStatus.textContent = 'Falha de Conexão';
+        badgeFonte.className = 'badge err';
+        badgeFonte.textContent = 'Offline';
+        resBody.textContent = JSON.stringify({ erro: err.message }, null, 2);
+      } finally {
+        btnEnviar.disabled = false;
+        btnEnviar.textContent = '[ ENVIAR REQUISIÇÃO (POST) ]';
+      }
+    }
+
+    async function testarStatus() {
+      const key = elKey.value.trim();
+      try {
+        const resp = await fetch('/v1/ia-generativa/status', {
+          headers: { 'X-API-Key': key }
+        });
+        const dados = await resp.json();
+        resStatus.textContent = `${resp.status} ${resp.statusText}`;
+        resBody.textContent = JSON.stringify(dados, null, 2);
+      } catch (err) {
+        resBody.textContent = JSON.stringify({ erro: err.message }, null, 2);
+      }
+    }
+  </script>
+</body>
+</html>
