@@ -112,6 +112,9 @@ window.Icones = (function () {
     const img = new Image();
     img.className = 'pixel-sprite';
     img.alt = nome;
+    img.onerror = () => {
+      container.innerHTML = svg(nome);
+    };
     img.src = `assets/img/${arquivo}`;
     container.appendChild(img);
     return 'sprite';
