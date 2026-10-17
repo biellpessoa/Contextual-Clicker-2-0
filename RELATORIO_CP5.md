@@ -193,31 +193,3 @@ Esta seção documenta a condução do desenvolvimento guiado por prompts, regis
 | **T08** | **Autenticação da API (X-API-Key)** | Enviar requisição sem header `X-API-Key` no Swagger ou painel. | Servidor retorna código HTTP `401 Unauthorized`. | Resposta `401` com `detail: "API Key ausente ou inválida."` confirmada. | ✅ APROVADO |
 | **T09** | **Fallback com Ollama Desligado** | Parar o serviço do Ollama e iniciar partida. | Jogo não trava; exibe lore temática gerada pelo fallback com tag `FALLBACK`. | Jogo iniciou instantaneamente; tag `FALLBACK (OLLAMA OFFLINE)` exibida. | ✅ APROVADO |
 | **T10** | **Condição de Vitória & Epílogo** | Completar os 8 artefatos do museu (ou via modo `?demo=1`). | Transição para tela de vitória; epílogo final narrado pelo Llama 3.2 com estatísticas. | Tela de vitória ativada, som triunfal tocado e epílogo exibido com efeito de digitação. | ✅ APROVADO |
-
----
-
-# 7. Roteiro Sugerido para o Vídeo de Demonstração (2 a 5 Minutos)
-
-Para a gravação do vídeo exigido pelos professores, siga esta sequência cronológica:
-
-* **0:00 - 0:45 | Apresentação e Arquitetura:**
-  * Apresente os integrantes do grupo e a proposta do *Contextual Clicker*.
-  * Mostre o terminal rodando o FastAPI (`uvicorn app.main:app --reload`) e o Ollama com `llama3.2`.
-  * Abra o Swagger em `http://localhost:8000/docs` mostrando o endpoint `POST /v1/ia-generativa/texto` protegido por `X-API-Key`.
-  * **Ponto-Chave para Front-End:** Explique que o back-end cobre a modalidade de **Texto** em tempo real via API (conforme a tabela de endpoints da disciplina), enquanto as **Imagens** foram pré-geradas offline como assets estáticos na pré-produção.
-* **0:45 - 1:45 | Início da Partida & Geração em Tempo Real:**
-  * Abra o jogo no navegador (`http://localhost:8000/jogo/`).
-  * Digite um tema no menu (ex: "Escola", "Cozinha", "Espaço") e inicie a escavação.
-  * Mostre a lore da picareta e do buff sendo gerada pelo Llama 3.2, destacando a tag `LORE GERADA POR LLAMA 3.2` e o log HTTP 200 no terminal.
-  * **Ponto-Chave para NLP:** Aponte para a imagem da picareta e explique que foram geradas 16 artes em pixel art no Bing Image Creator (DALL-E 3) com prompt 1-bit, recortadas e tratadas via CSS (`invert(1)`, `contrast(5)` e `mix-blend-mode: screen`), e que a lore gerada pelo Llama 3.2 segue estritamente o arquétipo visual da imagem e o tema escolhido.
-* **1:45 - 2:45 | Gameplay das Mecânicas Centrais:**
-  * Mostre a mineração por clique no planeta e pelo teclado (barra de espaço).
-  * Compre o upgrade da Picareta Nível 2 (tecla `U`), evidenciando o aumento do dano e a produção ociosa contínua.
-  * Clique no buff consumível flutuante que surgiu na tela, demonstrando a multiplicação de velocidade e o timer regressivo.
-* **2:45 - 3:45 | Museu de Artefatos & Desbloqueio:**
-  * Acesse a tela do Museu (tecla `M`), demonstrando os 8 cartões com suas respectivas imagens e lores geradas pela IA.
-  * Retorne à mina e mostre a notificação Toast de novos artefatos desenterrados.
-* **3:45 - 4:30 | Painel de Testes, Fallback e Conclusão:**
-  * Abra a página do Painel de Testes (`http://localhost:8000/painel`) para demonstrar o consumo isolado da API com medição de latência e teste de erro 401.
-  * Mostre os testes automatizados rodando no terminal (`pytest` com 16 testes e `node --test` com 7 testes).
-  * Conclua com a tela de vitória e o epílogo gerado pela IA.

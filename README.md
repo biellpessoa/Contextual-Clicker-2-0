@@ -28,8 +28,8 @@
 
 ## 📹 Demonstração em Vídeo
 
-> **Arquivo de Vídeo Incluído no Projeto:** [`PRINTS/demonstracao_execucao.webp`](./PRINTS/demonstracao_execucao.webp) *(gravação real da execução no navegador cobrindo Swagger, Painel de Testes, Mineração, Upgrades e Museu)*.  
-> **Link Alternativo de Vídeo (YouTube / Drive):** *(Adicione o link do YouTube não listado ou Google Drive aqui, caso deseje).*
+> **Arquivo de Vídeo Incluído no Projeto:** [`PRINTS/demonstracao_execucao.webp`](./PRINTS/demonstracao_execucao.webp)  
+> **Link Video de teste do jogo:** *https://youtu.be/-tglE4MjA-E*
 
 ---
 
@@ -263,7 +263,7 @@ async function gerarTexto(tipo, tema, contexto = {}) {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'X-API-Key': cfg.API_KEY  // Autenticação via header exigida pela disciplina
+      'X-API-Key': cfg.API_KEY  
     },
     body: JSON.stringify({ tipo, tema, contexto }),
     signal: AbortSignal.timeout(cfg.TIMEOUT_MS)
@@ -328,21 +328,3 @@ Na raiz do projeto:
 node --test tests/test_game_logic.js
 ```
 > **Resultado:** 7 testes aprovados cobrindo mineração por clique, progressão de custos, cálculo de buffs, produção ociosa por segundo e persistência de dados.
-
----
-
-## 🎬 Roteiro para o Mini-Vídeo de Demonstração (1 a 2 Minutos)
-
-Caso o professor queira entender a ideia do projeto ou caso haja qualquer limitação de ambiente:
-
-1. **Apresentação (0:00 - 0:25):**  
-   - Apresente os integrantes: *Paulo Gabriel Pessoa da Silva (RM 566446)* e *William Stahl Sanches Furquim Garcia (RM 562800)*.  
-   - Explique a proposta: jogo Contextual Clicker desacoplado em dois projetos (`backend` e `frontend`).
-2. **Back-End e Swagger (0:25 - 0:50):**  
-   - Mostre o terminal rodando o FastAPI em `http://localhost:8000`.  
-   - Abra o Swagger (`/docs`), mostre o botão *Authorize* (`X-API-Key`) e o endpoint `POST /v1/ia-generativa/texto`.  
-   - Mostre o painel de testes (`/painel`) enviando um tema e recebendo a lore em JSON com status 200.
-3. **Gameplay e Consumo da API (0:50 - 1:30):**  
-   - Abra o jogo em `/jogo/`, digite o tema (ex: "Espaço" ou "Cozinha") e inicie.  
-   - Mostre os cliques no planeta minerando pedras, compre o upgrade da picareta e abra o museu de artefatos.  
-   - Destaque que o front-end consome a API própria via `fetch`, com tratamento de fallback caso a LLM esteja offline.
